@@ -26,8 +26,17 @@ export class GenerationStageLog {
     const dir = path.isAbsolute(config.generation.logDir)
       ? config.generation.logDir
       : path.resolve(ROOT, config.generation.logDir);
-    fs.mkdirSync(dir, { recursive: true });
-    this.filePath = path.join(dir, `${batchId}.jsonl`);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      this.filePath = path.join(dir, `${batchId}.jsonl`);
+    } catch (err) {
+      // Ephemeral / read-only disks (e.g. some PaaS) must not crash generation.
+      console.warn(
+        '[generation-log] disk logging disabled (dir not writable):',
+        err instanceof Error ? err.message : err,
+      );
+      this.filePath = null;
+    }
   }
 
   record(stage: string, input: unknown, output: unknown, draftIndex?: number) {

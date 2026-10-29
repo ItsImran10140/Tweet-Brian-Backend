@@ -74,10 +74,14 @@ export function startCrons() {
     }
   }
   cron.schedule('5 * * * *', () => {
-    runGenerationCron().then((r) => console.log('[cron] generation', r));
+    runGenerationCron()
+      .then((r) => console.log('[cron] generation', r))
+      .catch((e) => console.error('[cron] generation crashed:', (e as Error).message));
   });
   cron.schedule('30 3 * * *', () => {
-    learnForAllUsers().then((r) => console.log('[cron] learn', r));
+    learnForAllUsers()
+      .then((r) => console.log('[cron] learn', r))
+      .catch((e) => console.error('[cron] learn crashed:', (e as Error).message));
   });
   console.log('[cron] hourly generation + daily learning scheduled');
 }

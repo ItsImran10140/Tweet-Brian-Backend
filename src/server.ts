@@ -86,13 +86,18 @@ export function createApp() {
     res.sendFile('public/onboarding.html', { root: ROOT });
   });
 
-  /** Lean probe for load balancers / uptime monitors. No secrets, no heavy work. */
-  app.get('/health', (_req, res) => {
-    res.json({
+  /** Lean probe for load balancers / uptime monitors. No secrets, no DB/LLM. */
+  const sendHealth = (_req: express.Request, res: express.Response) => {
+    res.status(200).json({
       ok: true,
       service: 'tweet-brain',
       ts: new Date().toISOString(),
     });
+  };
+  app.get('/health', sendHealth);
+  // UptimeRobot and similar monitors may probe with HEAD.
+  app.head('/health', (_req, res) => {
+    res.status(200).end();
   });
 
   /**
@@ -236,9 +241,10 @@ if (require.main === module) {
     log('warn', 'ADMIN_KEY unset — /api/admin/* and /api/dev/* are closed until you set it');
   }
 
-  createApp().listen(config.port, () => {
+  // Bind 0.0.0.0 so Render / Docker health checks reach the process (not only localhost).
+  createApp().listen(config.port, '0.0.0.0', () => {
     const llm = llmInfo();
-    console.log(`\nTweet Brain running on http://localhost:${config.port}`);
+    console.log(`\nTweet Brain running on http://0.0.0.0:${config.port}`);
     console.log(`  Config file : ${CONFIG_PATH ?? 'NOT FOUND (copy config.example.yml to config.yml)'}`);
     console.log(`  LLM         : ${llm.mode === 'mock' ? 'MOCK mode (fake answers)' : llm.order.map((o) => `${o.provider}:${o.model}`).join('  ->  ')}`);
     for (const n of llm.notes) console.log(`                ${n}`);

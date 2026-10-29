@@ -164,7 +164,8 @@ const schema = z.object({
   generation: z.object({
     /** multi = pick material → format → draft → critique/rewrite; single = legacy one-shot */
     pipeline: z.enum(['multi', 'single']).default('multi'),
-    logStages: bool(true),
+    /** Off by default in production — Render free disk is ephemeral; set GENERATION_LOG_STAGES=true to enable. */
+    logStages: bool(process.env.NODE_ENV !== 'production'),
     logDir: z.string().default('./data/generation-logs'),
     /** Rewrite when any of voice/specificity/originality is below this (1–10). */
     critiqueMinScore: num(6, 1, 10),
@@ -297,7 +298,11 @@ const parsed = schema.safeParse({
   polar: readPolarConfigInput(val),
   generation: {
     pipeline: val('GENERATION_PIPELINE', 'generation.pipeline'),
-    logStages: val('GENERATION_LOG_STAGES', 'generation.log_stages'),
+    // Production: off unless GENERATION_LOG_STAGES is explicitly set (ignore config.yml true on Render).
+    logStages:
+      process.env.NODE_ENV === 'production' && blank(process.env.GENERATION_LOG_STAGES) === undefined
+        ? false
+        : val('GENERATION_LOG_STAGES', 'generation.log_stages'),
     logDir: val('GENERATION_LOG_DIR', 'generation.log_dir'),
     critiqueMinScore: val('GENERATION_CRITIQUE_MIN_SCORE', 'generation.critique_min_score'),
     bannedPatterns: fromYaml('generation.banned_patterns') ?? undefined,

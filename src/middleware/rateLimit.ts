@@ -60,9 +60,21 @@ export function clientIp(req: Parameters<RequestHandler>[0]): string {
   return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
-/** Global per-IP limit for all traffic (cheap endpoints included). */
+/** Paths that must never 429 (uptime pingers / free-tier keep-awake). */
+const RATE_LIMIT_EXEMPT_PATHS = new Set(['/health', '/keepalive']);
+
+function isRateLimitExempt(req: Parameters<RequestHandler>[0]): boolean {
+  const path = req.path || req.url?.split('?')[0] || '';
+  return RATE_LIMIT_EXEMPT_PATHS.has(path);
+}
+
+/** Global per-IP limit for all traffic (exempts /health and /keepalive). */
 export function globalIpRateLimit(maxPerMinute: number): RequestHandler {
-  return createRateLimit((req) => `ip:${clientIp(req)}`, maxPerMinute, 60_000, 'ip_rate_limited');
+  const limiter = createRateLimit((req) => `ip:${clientIp(req)}`, maxPerMinute, 60_000, 'ip_rate_limited');
+  return (req, res, next) => {
+    if (isRateLimitExempt(req)) return next();
+    return limiter(req, res, next);
+  };
 }
 
 /** Stricter per-user limit on authenticated API routes. */

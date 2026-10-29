@@ -1,0 +1,76 @@
+# Render Blueprint — tweet-brain (Express API)
+# Docs: https://render.com/docs/blueprint-spec
+# Secrets use sync: false so you paste values in the Render dashboard (never commit real values).
+
+services:
+  - type: web
+    name: tweet-brain
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: CRON_ENABLED
+        value: "true"
+
+      # ---- Required secrets (fill in Dashboard) ----
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
+
+      # ---- X OAuth + token encryption ----
+      - key: X_CLIENT_ID
+        sync: false
+      - key: X_CLIENT_SECRET
+        sync: false
+      - key: X_REDIRECT_URI
+        sync: false
+      - key: X_TOKEN_ENCRYPTION_KEY
+        sync: false
+
+      # ---- Polar billing ----
+      - key: POLAR_ENVIRONMENT
+        sync: false
+      - key: POLAR_ACCESS_TOKEN
+        sync: false
+      - key: POLAR_WEBHOOK_SECRET
+        sync: false
+      - key: POLAR_PRODUCT_LIFETIME_19
+        sync: false
+      - key: POLAR_PRODUCT_LIFETIME_29
+        sync: false
+      - key: POLAR_PRODUCT_MONTHLY
+        sync: false
+      - key: POLAR_PRODUCT_YEARLY
+        sync: false
+      - key: POLAR_SUCCESS_URL
+        sync: false
+
+      # ---- Optional integrations (same secrets pattern) ----
+      - key: PARALLEL_API_KEY
+        sync: false
+      - key: X_BEARER_TOKEN
+        sync: false
+      - key: TWITTERAPI_IO_KEY
+        sync: false
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

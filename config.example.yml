@@ -149,6 +149,7 @@ alerts:
 # ---------------------------------------------------------------------------
 generation:
   pipeline: multi
+  # true locally; in production (NODE_ENV=production) defaults to false unless GENERATION_LOG_STAGES=true
   log_stages: true
   log_dir: ./data/generation-logs
   critique_min_score: 6
