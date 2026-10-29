@@ -75,7 +75,14 @@ const schema = z.object({
   port: num(3001, 1, 65535),
   dataFile: z.string().default('./data/db.json'),
   cronEnabled: bool(true),
-  frontendUrl: z.string().url().default('http://localhost:5173'),
+  frontendUrl: z
+    .string()
+    .url()
+    .default(
+      process.env.NODE_ENV === 'production'
+        ? 'https://app.tweet-brain.com'
+        : 'http://localhost:5173',
+    ),
   supabase: z.object({
     url: str,
     serviceRoleKey: str,

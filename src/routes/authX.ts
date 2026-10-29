@@ -19,8 +19,26 @@ import { config } from '../config';
 
 export const authX = Router();
 
+function frontendOrigin(): string {
+  try {
+    const configured = new URL(config.frontendUrl);
+    // Production must never bounce X OAuth back to a developer machine.
+    if (
+      process.env.NODE_ENV === 'production' &&
+      (configured.hostname === 'localhost' || configured.hostname === '127.0.0.1')
+    ) {
+      return 'https://app.tweet-brain.com';
+    }
+    return configured.origin;
+  } catch {
+    return process.env.NODE_ENV === 'production'
+      ? 'https://app.tweet-brain.com'
+      : 'http://localhost:5173';
+  }
+}
+
 function frontendResult(success: boolean, message?: string): string {
-  const url = new URL(config.frontendUrl);
+  const url = new URL(frontendOrigin());
   // Land on the paid-only Connect X step so OAuth return continues the post-welcome flow.
   url.pathname = '/connect-x';
   url.searchParams.set('x_connection', success ? 'success' : 'error');
