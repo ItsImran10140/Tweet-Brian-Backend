@@ -1,0 +1,1640 @@
+{
+  "info": {
+    "name": "Tweet Brain",
+    "description": "Run the server (npm run dev), then go top to bottom: 0 Setup -> 1 Onboarding -> 2 Reference accounts -> 3 Niche digest -> 4 Tweets.\n\n'Create user' saves your userId automatically; every other request sends it in the x-user-id header.\nAdmin requests (folder 3) send x-admin-key: {{adminKey}}. Leave adminKey empty unless you set ADMIN_KEY in .env.\nChange {{baseUrl}} in the collection Variables tab if you use another port.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "adminKey",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "refId",
+      "value": ""
+    },
+    {
+      "key": "tweetId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0 Setup",
+      "item": [
+        {
+          "name": "Health (is the server up? which LLM?)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Test LLM keys (Gemini + OpenRouter)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/llm/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "llm",
+                "test"
+              ]
+            },
+            "description": "Sends a tiny request to each configured provider. Tells you which key or model name is wrong."
+          }
+        },
+        {
+          "name": "Create user (saves userId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timezone\": \"Asia/Kolkata\",\n  \"daily_tweet_limit\": 10,\n  \"preferred_generation_time\": \"09:00\",\n  \"niche\": \"tech\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Run this ONCE. It stores the id in {{userId}} for every other request. Replace your_x_handle with your own account."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.id) { pm.collectionVariables.set('userId', j.id); console.log('userId saved:', j.id); }",
+                  "pm.test('user created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update my settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daily_tweet_limit\": 10,\n  \"twitter_handle\": \"your_x_handle\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Overview (everything connected so far)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "overview"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 Onboarding (psychology questions)",
+      "item": [
+        {
+          "name": "1a. Read the questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "questions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1b. Get the fill-in template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "template"
+              ]
+            },
+            "description": "Returns every question with an id, how to answer it, and a 'body' you can copy into 1c."
+          }
+        },
+        {
+          "name": "1c. Save ALL answers (edit this body)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "draft"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": \"all\",\n  \"answers\": {\n    \"persona\": {\n      \"q1\": \"TYPE YOUR ANSWER - what you do and your field\",\n      \"q2\": \"TYPE YOUR ANSWER - what you want to be known for online\",\n      \"q3\": \"TYPE YOUR ANSWER - your ideal reader\",\n      \"q4\": \"TYPE YOUR ANSWER - a belief most people in your field disagree with\",\n      \"q5\": \"TYPE YOUR ANSWER - one REAL story that shaped how you work\",\n      \"q6\": \"TYPE YOUR ANSWER - topics that are off-limits (comma separated)\",\n      \"q7\": \"TYPE YOUR ANSWER - words you never want to see (comma separated)\",\n      \"q8\": \"TYPE YOUR ANSWER - how competitive are you, and where does it show up\",\n      \"q9\": \"TYPE YOUR ANSWER - what you love reading or watching about\",\n      \"q10\": [\n        \"AI\",\n        \"Startups\",\n        \"Engineering\"\n      ]\n    },\n    \"thinking\": {\n      \"t1\": 3,\n      \"t2\": 3,\n      \"t3\": 3,\n      \"t4\": 3,\n      \"t5\": 3,\n      \"t6\": 3,\n      \"t7\": 3,\n      \"t8\": 3,\n      \"t9\": 3,\n      \"t10\": 3,\n      \"t11\": 3,\n      \"t12\": 3,\n      \"t13\": 3,\n      \"t14\": 3,\n      \"t15\": 3\n    },\n    \"voice\": {\n      \"v1\": \"A\",\n      \"v2\": \"A\",\n      \"v3\": \"A\",\n      \"v4\": \"A\",\n      \"v5\": \"A\",\n      \"v6\": \"A\",\n      \"v7\": \"A\",\n      \"v8\": \"A\"\n    },\n    \"lenses\": [\n      \"founder\",\n      \"engineer\"\n    ],\n    \"samples\": [\n      \"TYPE: one of your real past posts\",\n      \"TYPE: another real post\",\n      \"TYPE: a third real post\"\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Replace every 'TYPE ...' text. thinking: 1 (strongly disagree) to 5 (strongly agree). voice: 'A', 'B' or 'neither'. lenses: up to 2 from GET /template -> lens_options. You can send this in pieces; each save merges. The response shows progress and what is missing."
+          }
+        },
+        {
+          "name": "1c-alt. Save just the thinking section",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "draft"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": \"thinking\",\n  \"answers\": {\n    \"thinking\": {\n      \"t1\": 5,\n      \"t2\": 2,\n      \"t3\": 4\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "1d. Check progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "draft"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1e. (optional) Import samples from YOUR X account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/own-tweets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "own-tweets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"auto\",\n  \"limit\": 200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Needs twitter.x_bearer_token or twitter.twitterapi_io_key in config.yml. Uses the handle from 'Create user'. Replaces the 'samples' answers with your best recent posts. No key? Paste samples in 1c."
+          }
+        },
+        {
+          "name": "1f. Preview scores (no LLM)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "score"
+              ]
+            }
+          }
+        },
+        {
+          "name": "1g. Build my profile (LLM)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/synthesize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "synthesize"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 Reference accounts (whose style to borrow)",
+      "item": [
+        {
+          "name": "2a. Which tweet sources are configured?",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2b. Connect by pasting tweets (always works)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"IndieHackers\",\n  \"admire_reason\": \"Short, punchy, practical lessons\",\n  \"text\": \"Paste tweet one here\\n---\\nPaste tweet two here\\n---\\nPaste tweet three here\",\n  \"analyze\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Copy 20+ tweets from the account's profile page, separate them with a line containing only ---. More tweets = better style match."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = (j.account && j.account.id);",
+                  "if (id) { pm.collectionVariables.set('refId', id); console.log('refId saved:', id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2c. Connect + fetch via API (needs an X key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"naval\",\n  \"admire_reason\": \"Compresses big ideas into one line\",\n  \"syncNow\": true,\n  \"limit\": 200,\n  \"analyze\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = (j.account && j.account.id);",
+                  "if (id) { pm.collectionVariables.set('refId', id); console.log('refId saved:', id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2d. List connected accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2e. Account details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2f. Fetch tweets via API",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "sync"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"auto\",\n  \"limit\": 200,\n  \"analyze\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2g. Paste more tweets later",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/tweets/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "tweets",
+                "import"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Another tweet\\n---\\nAnd another\",\n  \"analyze\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2h. See stored tweets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/tweets?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "tweets"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2i. (Re)build the style profile (LLM)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "analyze"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"useLlm\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2j. Style profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/style",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "style"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2k. Exactly what the LLM receives for this account",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}/context?format=text",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}",
+                "context"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2l. Remove account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/references/{{refId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "references",
+                "{{refId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Niche digest (what is happening in your field)",
+      "item": [
+        {
+          "name": "3a. Safe preview (no LLM, nothing saved, no Parallel request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/dry-run?niche=tech",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "dry-run"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "tech"
+                }
+              ]
+            },
+            "description": "Collects from feeds, GitHub and Hacker News, merges duplicates, applies trust tiers. Look at \"sources\" to see which feeds work, and \"preview\" for what would reach the LLM. Costs nothing."
+          }
+        },
+        {
+          "name": "3b. Safe preview INCLUDING Parallel search (uses 1-2 requests)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/dry-run?niche=tech&include_search=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "dry-run"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "tech"
+                },
+                {
+                  "key": "include_search",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Same as 3a but also calls Parallel once per search entry. Needs PARALLEL_API_KEY."
+          }
+        },
+        {
+          "name": "3c. Build today's digest (LLM call #1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/run?niche=tech",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "run"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "tech"
+                }
+              ]
+            },
+            "description": "Full pipeline: collect, verify, summarize in own words, save. Search results are reused if already fetched today; add &force_search=1 to search again."
+          }
+        },
+        {
+          "name": "3d. Read the digest (what the tweet writer sees)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/digest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "digest"
+              ]
+            },
+            "description": "Short facts with source links. Same for every user of the niche."
+          }
+        },
+        {
+          "name": "3e. List niches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/digest/niches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "digest",
+                "niches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3f. Pipeline status + Parallel budget",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "status"
+              ]
+            },
+            "description": "Sources per niche, Parallel used/cap this month, last runs, blocklist."
+          }
+        },
+        {
+          "name": "3g. Recent runs (per-source report)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/runs?limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "runs"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3h. Parallel usage this month",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "usage"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3i. What was collected (short excerpts, purged after 48h)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/raw?niche=tech",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "raw"
+              ],
+              "query": [
+                {
+                  "key": "niche",
+                  "value": "tech"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3j. Takedown: block a domain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/blocklist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "blocklist"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain\": \"example.com\",\n  \"reason\": \"publisher asked to be removed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Excludes the domain from every future run and removes what is already stored from it right now."
+          }
+        },
+        {
+          "name": "3k. List blocked domains",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/blocklist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "blocklist"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3l. Unblock a domain",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/blocklist/example.com",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "blocklist",
+                "example.com"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3m. Test the failure alert (webhook / Telegram)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/test-alert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "test-alert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3n. Delete old data now",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-admin-key",
+                "value": "{{adminKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/digest/purge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "digest",
+                "purge"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Tweets",
+      "item": [
+        {
+          "name": "4a. Generate today's tweets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "generate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": 10,\n  \"refresh_digest\": true,\n  \"pipeline\": \"multi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Multi-step pipeline (default): pick material → pick format → draft → critique/rewrite. Saves format_id, material_source, style_match_score. Set pipeline to \"single\" for the legacy one-shot path. Stage logs land in data/generation-logs/<batch_id>.jsonl and in response.stage_log."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.tweets && j.tweets.length) { pm.collectionVariables.set('tweetId', j.tweets[0].id); console.log('tweetId saved:', j.tweets[0].id); }",
+                  "if (j.batch_id) { pm.collectionVariables.set('batchId', j.batch_id); }",
+                  "console.log('pipeline:', j.pipeline, 'saved:', j.saved, 'stages:', (j.stage_log && j.stage_log.stages || []).length);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4a2. Generate (legacy single-pass A/B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "generate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": 5,\n  \"refresh_digest\": true,\n  \"pipeline\": \"single\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Legacy one-shot generation for A/B comparison against pipeline=multi. Also set generation.pipeline: single in config.yml to make this the default."
+          }
+        },
+        {
+          "name": "4b. List pending tweets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets?status=pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.tweets && j.tweets.length) { pm.collectionVariables.set('tweetId', j.tweets[0].id); console.log('tweetId saved:', j.tweets[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4c. List liked tweets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets?status=liked",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "liked"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4d. Like a tweet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets/{{tweetId}}/like",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "{{tweetId}}",
+                "like"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4e. Discard a tweet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets/{{tweetId}}/discard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "{{tweetId}}",
+                "discard"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"too_generic\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "reason: too_generic | not_my_opinion | wrong_tone | too_long | off_topic. After 3+ similar discards the app learns a rule."
+          }
+        },
+        {
+          "name": "4f. Edit a tweet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tweets/{{tweetId}}/edit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "{{tweetId}}",
+                "edit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Your edited version (max 280 chars)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 Profile",
+      "item": [
+        {
+          "name": "5a. See my profile + learned rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5b. Add hard rules (banned words, off-limits, stories)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-user-id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bannedWords\": [\n    \"unlock\"\n  ],\n  \"offLimitsTopics\": [\n    \"crypto\"\n  ],\n  \"stories\": [],\n  \"answers\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 Dev helpers",
+      "item": [
+        {
+          "name": "Run the daily generation job now (all users)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/run-generation-cron?force=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dev",
+                "run-generation-cron"
+              ],
+              "query": [
+                {
+                  "key": "force",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Run the learning job now",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/run-learning",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dev",
+                "run-learning"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

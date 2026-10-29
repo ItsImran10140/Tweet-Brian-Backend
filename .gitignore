@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+config.yml
+data/*.json
+data/*.tmp
+data/backups/
+.tweet-brain-user

@@ -1,0 +1,44 @@
+{
+  "persona": [
+    { "id": "q1", "type": "text", "text": "What do you do, and what field are you in?" },
+    { "id": "q2", "type": "text", "text": "What do you want to be known for online?" },
+    { "id": "q3", "type": "text", "text": "Who is your ideal reader?" },
+    { "id": "q4", "type": "text", "text": "What is one belief you hold that most people in your field disagree with?" },
+    { "id": "q5", "type": "text", "text": "Tell one real story from your career or life that shaped how you work." },
+    { "id": "q6", "type": "text", "text": "What topics are completely off-limits for your account?" },
+    { "id": "q7", "type": "text", "text": "Which words or phrases do you never want to see in your tweets?" },
+    { "id": "q8", "type": "text", "text": "How competitive are you, and where does it show up?" },
+    { "id": "q9", "type": "text", "text": "What do you love reading or watching about (business, tech, sports...)?" },
+    { "id": "q10", "type": "multi_select", "text": "Which topics should your tweets cover?", "options": ["AI", "Startups", "Business strategy", "Product", "Engineering", "Sports", "Markets/Finance", "Productivity", "Career"] },
+    { "id": "q11", "type": "paste_samples", "text": "Paste 3-10 of your own past posts or writing (one per entry)." },
+    { "id": "q12", "type": "reference", "repeat_per_reference_account": true, "text": "What do you admire about this account?" }
+  ],
+  "thinking": [
+    { "id": "t1", "text": "I prefer to check the data before forming an opinion.", "dimension": "analytical", "direction": "+" },
+    { "id": "t2", "text": "I trust my gut more than a spreadsheet.", "dimension": "analytical", "direction": "-" },
+    { "id": "t3", "text": "I break big problems into measurable parts.", "dimension": "analytical", "direction": "+" },
+    { "id": "t4", "text": "I like ideas and frameworks more than concrete examples.", "dimension": "abstract", "direction": "+" },
+    { "id": "t5", "text": "I explain things best with specific real cases.", "dimension": "abstract", "direction": "-" },
+    { "id": "t6", "text": "I enjoy connecting unrelated fields into one theory.", "dimension": "abstract", "direction": "+" },
+    { "id": "t7", "text": "I take bold bets even when the odds are unclear.", "dimension": "risk_taking", "direction": "+" },
+    { "id": "t8", "text": "I avoid options where I could lose a lot.", "dimension": "risk_taking", "direction": "-" },
+    { "id": "t9", "text": "I move first and fix later.", "dimension": "risk_taking", "direction": "+" },
+    { "id": "t10", "text": "I enjoy arguing against the popular view.", "dimension": "contrarian", "direction": "+" },
+    { "id": "t11", "text": "I usually agree with expert consensus.", "dimension": "contrarian", "direction": "-" },
+    { "id": "t12", "text": "I get suspicious when everyone agrees.", "dimension": "contrarian", "direction": "+" },
+    { "id": "t13", "text": "I think about how people feel before what is correct.", "dimension": "empathy", "direction": "+" },
+    { "id": "t14", "text": "Blunt truth matters more than comfort.", "dimension": "empathy", "direction": "-" },
+    { "id": "t15", "text": "I notice others' moods quickly.", "dimension": "empathy", "direction": "+" }
+  ],
+  "voice": [
+    { "id": "v1", "axis": "formality", "a_is_high": true, "a": "Growth is a function of consistent, deliberate effort.", "b": "you don't get better by vibes. you show up." },
+    { "id": "v2", "axis": "sentence_length", "a_is_high": true, "a": "Most founders underestimate how long distribution takes because they only see the launch, not the slow months of learning what people actually want.", "b": "Distribution is slow. Launch is a myth. Learn first." },
+    { "id": "v3", "axis": "contrarianism", "a_is_high": true, "a": "Everyone says hustle harder. Wrong. Most people need to quit more.", "b": "Hustle matters, but pick the right thing first." },
+    { "id": "v4", "axis": "humor", "a_is_high": true, "a": "My roadmap is 90% things I promised in a meeting.", "b": "A roadmap is a list of promises you must keep." },
+    { "id": "v5", "axis": "directness", "a_is_high": true, "a": "Your pricing is too low. Raise it.", "b": "You might want to test whether your pricing leaves room to grow." },
+    { "id": "v6", "axis": "emotion", "a_is_high": true, "a": "I almost quit last year. Glad I didn't.", "b": "Persistence compounds over multi-year horizons." },
+    { "id": "v7", "axis": "formality", "a_is_high": false, "a": "lol shipping on friday is a lifestyle", "b": "Shipping on Fridays carries operational risk." },
+    { "id": "v8", "axis": "directness", "a_is_high": false, "a": "Curious what others think about pricing early on.", "b": "Charge more from day one." }
+  ],
+  "lenses": ["economist", "engineer", "historian", "psychologist", "founder", "philosopher", "scientist", "storyteller", "investor"]
+}

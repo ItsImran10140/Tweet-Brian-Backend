@@ -1,0 +1,7 @@
+{
+  "_help": "Paste the 50 public-domain IPIP items from ipip.ori.org here. Traits: E, A, C, N, O. reverse=true for reverse-keyed items. Leave items empty to skip Big Five.",
+  "items": [
+    { "id": "b1", "text": "I am the life of the party.", "trait": "E", "reverse": false },
+    { "id": "b2", "text": "I don't talk a lot.", "trait": "E", "reverse": true }
+  ]
+}

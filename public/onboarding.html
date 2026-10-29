@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tweet Brain onboarding</title>
+    <style>
+      body { max-width: 760px; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 system-ui, sans-serif; color: #222; }
+      fieldset { margin: 1rem 0; padding: 1rem; border: 1px solid #ccc; }
+      legend { font-weight: 600; }
+      label.question { display: block; margin: 1rem 0; }
+      label.question > span { display: block; margin-bottom: .3rem; }
+      textarea { box-sizing: border-box; width: 100%; min-height: 4rem; font: inherit; }
+      button, select { font: inherit; }
+      .choices label { margin-right: .8rem; }
+      #status { white-space: pre-wrap; }
+      pre { overflow-x: auto; padding: 1rem; background: #f4f4f4; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tweet Brain onboarding</h1>
+      <p>Answer a few questions, save them, and build your writing profile. Your answers are sent to this app's backend.</p>
+      <section id="start">
+        <button id="continue" type="button">Start / continue onboarding</button>
+        <button id="new-user" type="button">Start with a new user</button>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+      <form id="answers" hidden>
+        <div id="questions"></div>
+        <button id="submit" type="submit">Save answers &amp; build profile</button>
+      </form>
+      <section id="profile-result" hidden>
+        <h2>Generated profile</h2>
+        <pre><code id="profile-json"></code></pre>
+      </section>
+      <section id="tweet-generator" hidden>
+        <h2>Generate tweets</h2>
+        <form id="generate-form">
+          <label class="question">
+            <span>Number of tweets (1-30)</span>
+            <input name="count" type="number" min="1" max="30" value="5" required>
+          </label>
+          <label class="question">
+            <span>Optional topic to react to</span>
+            <textarea name="topic" maxlength="4000" placeholder="e.g. AI tools are changing how small teams build products"></textarea>
+          </label>
+          <button id="generate-button" type="submit">Generate tweets</button>
+        </form>
+        <div id="generated-tweets"></div>
+      </section>
+    </main>
+    <script>
+      const storageKey = 'tweet-brain-user-id';
+      const status = document.querySelector('#status');
+      const start = document.querySelector('#start');
+      const form = document.querySelector('#answers');
+      const questionsRoot = document.querySelector('#questions');
+      const submitButton = document.querySelector('#submit');
+      const profileResult = document.querySelector('#profile-result');
+      const tweetGenerator = document.querySelector('#tweet-generator');
+      const generateForm = document.querySelector('#generate-form');
+      const generateButton = document.querySelector('#generate-button');
+      const generatedTweets = document.querySelector('#generated-tweets');
+      let userId = '';
+      let questions;
+
+      function setStatus(message) {
+        status.textContent = message;
+      }
+
+      async function api(path, options = {}) {
+        const headers = { ...(options.headers || {}) };
+        if (userId) headers['x-user-id'] = userId;
+        if (options.body) headers['content-type'] = 'application/json';
+        const response = await fetch(path, { ...options, headers });
+        const result = await response.json();
+        if (!response.ok) {
+          const error = result.error || {};
+          const failure = new Error([error.message || `Request failed (${response.status})`, error.hint].filter(Boolean).join(' '));
+          failure.code = error.code;
+          throw failure;
+        }
+        return result;
+      }
+
+      function showGenerator() {
+        tweetGenerator.hidden = false;
+      }
+
+      function renderTweets(tweets) {
+        generatedTweets.replaceChildren();
+        if (!tweets.length) {
+          const message = document.createElement('p');
+          message.textContent = 'No tweets passed the checks this time. Try another topic or generate again.';
+          generatedTweets.append(message);
+          return;
+        }
+        const heading = document.createElement('h3');
+        heading.textContent = `Generated ${tweets.length} tweet${tweets.length === 1 ? '' : 's'}`;
+        generatedTweets.append(heading);
+        for (const tweet of tweets) {
+          const article = document.createElement('article');
+          article.style.cssText = 'margin: 1rem 0; padding: 1rem; border: 1px solid #ccc; white-space: pre-wrap;';
+          const text = document.createElement('p');
+          text.textContent = tweet.text;
+          const type = document.createElement('small');
+          type.textContent = `${tweet.type || tweet.kind || 'tweet'}${tweet.source_url ? ` · Source: ${tweet.source_url}` : ''}`;
+          article.append(text, type);
+          generatedTweets.append(article);
+        }
+      }
+
+      function fieldset(title) {
+        const element = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = title;
+        element.append(legend);
+        questionsRoot.append(element);
+        return element;
+      }
+
+      function questionLabel(text) {
+        const label = document.createElement('label');
+        label.className = 'question';
+        const caption = document.createElement('span');
+        caption.textContent = text;
+        label.append(caption);
+        return label;
+      }
+
+      function addPersona(answers) {
+        const section = fieldset('About you');
+        for (const item of questions.persona.filter((q) => q.id !== 'q11' && q.id !== 'q12')) {
+          const label = questionLabel(item.text);
+          if (item.type === 'multi_select') {
+            const choices = document.createElement('div');
+            choices.className = 'choices';
+            for (const option of item.options || []) {
+              const choice = document.createElement('label');
+              const input = document.createElement('input');
+              input.type = 'checkbox';
+              input.name = `persona-${item.id}`;
+              input.value = option;
+              input.checked = (answers.persona?.[item.id] || []).includes(option);
+              choice.append(input, document.createTextNode(` ${option}`));
+              choices.append(choice);
+            }
+            label.append(choices);
+          } else {
+            const input = document.createElement('textarea');
+            input.name = `persona-${item.id}`;
+            input.value = answers.persona?.[item.id] || '';
+            input.placeholder = 'Your answer (leave blank to skip)';
+            label.append(input);
+          }
+          section.append(label);
+        }
+      }
+
+      function addThinking(answers) {
+        const section = fieldset('How you think (rate at least 10)');
+        for (const item of questions.thinking) {
+          const label = questionLabel(item.text);
+          const select = document.createElement('select');
+          select.name = `thinking-${item.id}`;
+          const skip = document.createElement('option');
+          skip.value = '';
+          skip.textContent = 'Skip';
+          select.append(skip);
+          for (let value = 1; value <= 5; value++) {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = String(value);
+            select.append(option);
+          }
+          select.value = answers.thinking?.[item.id] ?? '';
+          label.append(select);
+          section.append(label);
+        }
+      }
+
+      function addVoice(answers) {
+        const section = fieldset('Writing voice (choose at least 5)');
+        for (const item of questions.voice) {
+          const label = questionLabel(`Which sounds more like you? (${item.axis})`);
+          const choices = document.createElement('div');
+          choices.className = 'choices';
+          for (const [value, text] of [['A', item.a], ['B', item.b], ['neither', 'Neither']]) {
+            const choice = document.createElement('label');
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = `voice-${item.id}`;
+            input.value = value;
+            input.checked = answers.voice?.[item.id] === value;
+            choice.append(input, document.createTextNode(` ${value}: ${text}`));
+            choices.append(choice);
+          }
+          label.append(choices);
+          section.append(label);
+        }
+      }
+
+      function addLenses(answers) {
+        const section = fieldset('Optional: choose up to 2 lenses');
+        const choices = document.createElement('div');
+        choices.className = 'choices';
+        for (const lens of questions.lenses) {
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.name = 'lenses';
+          input.value = lens;
+          input.checked = (answers.lenses || []).includes(lens);
+          label.append(input, document.createTextNode(` ${lens}`));
+          choices.append(label);
+        }
+        choices.addEventListener('change', () => {
+          const checked = [...choices.querySelectorAll('input:checked')];
+          for (const input of choices.querySelectorAll('input:not(:checked)')) input.disabled = checked.length >= 2;
+        });
+        choices.dispatchEvent(new Event('change'));
+        section.append(choices);
+      }
+
+      function addSamples(answers) {
+        const section = fieldset('Optional: your past writing');
+        const label = questionLabel('Paste 3-10 of your own posts, one per line.');
+        const input = document.createElement('textarea');
+        input.name = 'samples';
+        input.rows = 6;
+        input.value = (answers.samples || []).join('\n');
+        label.append(input);
+        section.append(label);
+      }
+
+      function render(answers) {
+        questionsRoot.replaceChildren();
+        addPersona(answers);
+        addThinking(answers);
+        addVoice(answers);
+        addLenses(answers);
+        addSamples(answers);
+        form.hidden = false;
+        start.hidden = true;
+      }
+
+      function collectAnswers() {
+        const persona = {};
+        for (const item of questions.persona.filter((q) => q.id !== 'q11' && q.id !== 'q12')) {
+          if (item.type === 'multi_select') {
+            persona[item.id] = [...form.querySelectorAll(`[name="persona-${item.id}"]:checked`)].map((input) => input.value);
+          } else {
+            persona[item.id] = form.elements.namedItem(`persona-${item.id}`).value;
+          }
+        }
+        const thinking = {};
+        for (const item of questions.thinking) {
+          const value = form.elements.namedItem(`thinking-${item.id}`).value;
+          thinking[item.id] = value ? Number(value) : null;
+        }
+        const voice = {};
+        for (const item of questions.voice) {
+          voice[item.id] = form.querySelector(`[name="voice-${item.id}"]:checked`)?.value ?? null;
+        }
+        return {
+          persona,
+          thinking,
+          voice,
+          lenses: [...form.querySelectorAll('[name="lenses"]:checked')].map((input) => input.value),
+          samples: form.elements.namedItem('samples').value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+        };
+      }
+
+      async function begin(createNew) {
+        setStatus(createNew ? 'Creating a user…' : 'Connecting…');
+        try {
+          userId = createNew ? '' : (localStorage.getItem(storageKey) || '');
+          if (createNew || !userId) {
+            const user = await api('/api/users', { method: 'POST', body: '{}' });
+            userId = user.id;
+            localStorage.setItem(storageKey, userId);
+          } else {
+            await api('/api/users/me');
+          }
+          const [data, draft] = await Promise.all([
+            api('/api/onboarding/questions'),
+            api('/api/onboarding/draft')
+          ]);
+          questions = data;
+          render(draft.answers || {});
+          try {
+            await api('/api/profile');
+            showGenerator();
+          } catch (error) {
+            if (error.code !== 'no_profile') throw error;
+          }
+          setStatus('Your answers are ready. Save and build your profile when you are done.');
+        } catch (error) {
+          setStatus(error.message);
+          start.hidden = false;
+        }
+      }
+
+      document.querySelector('#continue').addEventListener('click', () => begin(false));
+      document.querySelector('#new-user').addEventListener('click', () => begin(true));
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        submitButton.disabled = true;
+        profileResult.hidden = true;
+        setStatus('Saving your answers…');
+        try {
+          const saved = await api('/api/onboarding/draft', {
+            method: 'PUT',
+            body: JSON.stringify({ step: 'all', answers: collectAnswers() })
+          });
+          if (!saved.ready_to_synthesize) {
+            setStatus(`Answers saved. To build your profile, ${saved.missing.join('; ')}.`);
+            return;
+          }
+          setStatus('Answers saved. Building your profile…');
+          const result = await api('/api/onboarding/synthesize', { method: 'POST' });
+          document.querySelector('#profile-json').textContent = JSON.stringify(result.profile, null, 2);
+          profileResult.hidden = false;
+          showGenerator();
+          setStatus('Profile generated from your latest answers.');
+        } catch (error) {
+          setStatus(error.message);
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      generateForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        generateButton.disabled = true;
+        setStatus('Generating tweets…');
+        try {
+          const count = Number(generateForm.elements.namedItem('count').value);
+          const topic = generateForm.elements.namedItem('topic').value.trim();
+          const result = await api('/api/tweets/generate', {
+            method: 'POST',
+            body: JSON.stringify({ count, ...(topic ? { topic } : {}) })
+          });
+          renderTweets(result.tweets);
+          setStatus(`Generated ${result.saved} of ${result.requested} requested tweets. You can edit the topic and generate another batch.`);
+        } catch (error) {
+          setStatus(error.message);
+        } finally {
+          generateButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

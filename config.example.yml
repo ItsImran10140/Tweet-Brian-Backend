@@ -1,0 +1,181 @@
+# ---------------------------------------------------------------------------
+# Tweet Brain config.
+#   1. Copy this file to  config.yml   (Windows: copy config.example.yml config.yml)
+#   2. Paste your real API keys below.
+#   3. Restart the server (npm run dev) after every change to this file.
+#
+# config.yml is git-ignored, so your keys never get committed.
+# Environment variables (or a .env file) override anything here, e.g.
+#   GEMINI_API_KEY, OPENROUTER_API_KEY, PARALLEL_API_KEY, LLM_PROVIDER, ADMIN_KEY, ... (see .env.example)
+# ---------------------------------------------------------------------------
+
+server:
+  port: 3001
+  # Frontend origin used for CORS and the post-OAuth return destination.
+  frontend_url: http://localhost:5173
+  # Local JSON "database" file (created automatically)
+  data_file: ./data/db.json
+  # Hourly "generate tweets for everyone" + nightly learning + daily niche digest jobs
+  cron_enabled: true
+  # Optional. When set, /api/admin/* requires the header  x-admin-key: <this value>
+  admin_key: ""
+
+llm:
+  # gemini      -> Google Gemini is the main model
+  # openrouter  -> OpenRouter is the main model
+  # mock        -> fake answers, no keys, no cost (good for checking the plumbing)
+  provider: gemini
+  # Used automatically when the main provider errors (quota, outage...).
+  # Set to "none" to disable.
+  fallback_provider: openrouter
+  timeout_seconds: 120
+
+  gemini:
+    # Get a free key: https://aistudio.google.com/apikey
+    api_key: ""
+    # gemini-3.5-flash-lite = most free requests per day.
+    # gemini-3.8-flash      = better writing, far fewer free requests per day.
+    model: gemini-3.5-flash-lite
+
+  openrouter:
+    # Get a key: https://openrouter.ai/keys   (free models need no credit card)
+    api_key: ""
+    # openrouter/free = OpenRouter picks an available free model for you.
+    # You can also use a specific id, e.g. "some-provider/some-model:free".
+    model: openrouter/free
+
+# Where reference-account tweets come from. ALL OPTIONAL: manual paste always works.
+twitter:
+  # Source 1: official X API (https://developer.x.com). Reading other accounts may need paid credits.
+  x_bearer_token: ""
+  # Source 2: twitterapi.io (pay per call, no X approval): https://twitterapi.io
+  twitterapi_io_key: ""
+
+# OAuth 2.0 credentials for connecting an account that can post.
+# Register redirect_uri exactly as shown below in the X developer portal.
+x_oauth:
+  client_id: ""
+  client_secret: ""
+  redirect_uri: http://localhost:3001/auth/x/callback
+  # 32-byte AES-256 key encoded as 64 hexadecimal characters.
+  # Keep it stable once connected accounts have been saved.
+  token_encryption_key: ""
+
+# How much style context each reference account adds to the prompt
+style:
+  max_tweets_stored: 400
+  # Top-performing tweets (by engagement when available) used to build each account's style card
+  top_performing_count: 50        # target sample size for analysis (30–50)
+  top_performing_min: 30          # below this, card is marked low-coverage
+  few_shot_count: 8               # legacy diverse few-shot pool size
+  structural_few_shot_min: 3      # at generation: retrieve at least this many format-relevant examples
+  structural_few_shot_max: 5      # and at most this many
+  raw_recent_count: 25
+  context_char_budget: 12000
+  style_card_ttl_hours: 168       # reuse cached style cards for 7 days (0 = always rebuild)
+  style_card_invalidate_delta: 15 # rebuild early if eligible tweet count drifts by this many
+
+# ---------------------------------------------------------------------------
+# NICHE DIGEST: "what is happening in my field", built once a day, shared by all users of a niche.
+# Sources (all free except an optional capped Parallel search):
+#   feeds             official blogs / release notes (RSS or Atom)          -> Tier 1 (the facts come from here)
+#   github_releases   release notes of projects you care about (owner/repo) -> Tier 1
+#   hacker_news       what the community upvotes today                      -> Tier 2
+#   search            Parallel web search, 1 request per entry per day      -> Tier 3 (needs a second source to count)
+# Only short excerpts are kept (and purged after raw_retention_hours); the digest stores facts in our own words + links.
+# ---------------------------------------------------------------------------
+digest:
+  enabled: true
+  schedule_cron: "0 4 * * *"       # daily at 04:00 in the timezone below (before users wake up)
+  timezone: Asia/Kolkata
+  items_per_digest: 10
+  max_age_hours: 48                # ignore anything older than this
+  stale_after_hours: 26            # tweet generation rebuilds the digest on demand if it is older than this
+  excerpt_max_chars: 300
+  raw_retention_hours: 48
+  digest_retention_days: 30
+  news_share: 0.6                  # ~60% of each tweet batch reacts to news, the rest is evergreen
+
+  # Domains that must never be used (add one when a publisher asks). You can also POST /api/admin/digest/blocklist.
+  blocklist_domains: []
+
+  parallel:
+    enabled: true
+    api_key: ""                    # https://platform.parallel.ai  (or PARALLEL_API_KEY in .env)
+    mode: fast                     # cheapest search mode; leave empty to use the API default
+    monthly_cap: 4000              # hard stop; their free allowance is 5,000 requests/month, we stay below it
+
+  safety:
+    block_invented_experience: true   # rejects "I tested...", "we shipped..." that the user never said
+    check_numbers: true               # rejects stats that are not in the digest or the user's profile
+    min_overlap_words: 6              # rejects drafts/facts that reuse 6+ words in a row from a source
+
+  niches:
+    tech:
+      label: Tech, AI and software
+      feeds:                           # a dead or wrong URL is skipped and shown in the run report
+        - { name: Google AI blog, url: "https://blog.google/technology/ai/rss/" }
+        - { name: OpenAI news, url: "https://openai.com/news/rss.xml" }
+        - { name: Hugging Face blog, url: "https://huggingface.co/blog/feed.xml" }
+        - { name: GitHub blog, url: "https://github.blog/feed/" }
+        - { name: Cloudflare blog, url: "https://blog.cloudflare.com/rss/" }
+        - { name: Vercel blog, url: "https://vercel.com/atom" }
+      github_releases:
+        - vercel/next.js
+        - facebook/react
+        - microsoft/TypeScript
+        - nodejs/node
+      hacker_news:
+        enabled: true
+        min_score: 150
+        max_items: 25
+        keywords: []                   # e.g. [ai, llm, gpt, startup] to keep only matching titles
+      search:                          # each entry = 1 Parallel request per day
+        - objective: "Find the most important new AI model releases, developer tools and product launches from the last 2 days. Prefer official announcements."
+          queries: ["new AI model release", "major developer tool launch", "open source AI release"]
+        - objective: "Find notable tech startup funding, acquisitions and policy news from the last 2 days."
+          queries: ["tech startup funding announced", "AI regulation news"]
+
+# Failure alerts (both optional). Also settable in .env.
+alerts:
+  webhook_url: ""                  # Slack or Discord webhook URL
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+
+# ---------------------------------------------------------------------------
+# TWEET GENERATION PIPELINE
+#   multi  = material → format → draft → critique/rewrite (default)
+#   single = legacy one-shot batch (keep for A/B comparison)
+# ---------------------------------------------------------------------------
+generation:
+  pipeline: multi
+  log_stages: true
+  log_dir: ./data/generation-logs
+  critique_min_score: 6
+  # Case-insensitive substring match. Prefix with "re:" for a regex, e.g. "re:the real .+ is never"
+  banned_patterns:
+    - "taught me one thing"
+    - "re:the real .+ is never"
+    - "re:is easy\\. .+ requires discipline"
+    - "game-changer"
+    - "here's the thing"
+    - "heres the thing"
+    - "in today's fast-paced world"
+    - "delve into"
+    - "unlock the power"
+    - "let's dive in"
+    - "buckle up"
+    - "the future is here"
+    - "you got this"
+    - "keep grinding"
+    - "trust the process"
+    - "never give up"
+    - "believe in yourself"
+
+# All product / cost limits live here — change numbers, not code.
+limits:
+  generate_per_hour: 30                 # per-user rate limit on generation endpoints
+  free_batches_per_user: 1              # free draft batches a new user may claim (0 = none)
+  free_generations_global_per_day: 200  # circuit breaker across all free users (UTC day)
+  paid_drafts_per_day: 50               # paid: max drafts generated per user per UTC day
+  paid_posts_per_day: 20                # paid: max schedule/publish actions per user per UTC day
