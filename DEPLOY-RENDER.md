@@ -62,9 +62,11 @@ Set `FRONTEND_URL` to your real frontend origin (scheme + host, no trailing path
 
 ### f. Frontend API base URL
 
-Point the frontend env (e.g. `VITE_API_BASE_URL` / whatever your app uses) at:  
-`https://<my-service>.onrender.com`  
-(no trailing slash unless your client already expects one).
+Point the frontend production env at:  
+`VITE_API_BASE_URL=https://<my-service>.onrender.com/api`  
+`VITE_API_ORIGIN=https://<my-service>.onrender.com`  
+
+Also set `FRONTEND_URL=https://app.tweet-brain.com` on Render (CORS + X OAuth return).
 
 ### g. Keep-awake pinger
 
